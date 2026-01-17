@@ -1,0 +1,7 @@
+# direnv
+.envrc
+.direnv/
+
+# nix
+.result
+result
