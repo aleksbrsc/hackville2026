@@ -1,0 +1,30 @@
+name: Dummy Commit Creator
+
+on:
+  push:
+    branches:
+      - '**'  # Triggers on all branches
+
+jobs:
+  create-dummy-commit:
+    runs-on: ubuntu-latest
+    if: github.event.head_commit.author.email != 'aleksbrsc@gmail.com'
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "Aleks Bursac"
+          git config --global user.email "aleksbrsc@gmail.com"
+
+      - name: Create dummy commit
+        run: |
+          # Create or update a dummy file
+          echo "Last updated: $(date)" > dummy.txt
+          git add dummy.txt
+          git commit -m "chore: dummy commit for redeployment" || echo "No changes to commit"
+          git push
