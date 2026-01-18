@@ -14,8 +14,20 @@
     {
       devShells.${system}.default = pkgs.mkShell {
         packages = [
+          # Python
           python
           python.pkgs.requests
+
+          # Node / npm
+          pkgs.nodejs_24
+
+          # node-gyp build deps
+          pkgs.gcc
+          pkgs.gnumake
+          pkgs.pkg-config
+
+          # Audio headers (for speaker, mic)
+          pkgs.alsa-lib
         ];
       };
     };
