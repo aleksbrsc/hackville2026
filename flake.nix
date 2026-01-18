@@ -14,8 +14,12 @@
     {
       devShells.${system}.default = pkgs.mkShell {
         packages = [
+          # Python
           python
           python.pkgs.requests
+
+          # Node / npm
+          pkgs.nodejs_24
         ];
       };
     };
