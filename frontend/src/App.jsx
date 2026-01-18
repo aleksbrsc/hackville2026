@@ -17,8 +17,30 @@ function App() {
     await startRecording();
   };
 
+  // Check if running on deployment URL (no backend)
+  const isDeployment = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+
   return (
-    <div style={{ height: "100%", display: "flex" }}>
+    <div style={{ height: "100%", display: "flex", position: "relative" }}>
+      {isDeployment && (
+        <div
+          style={{
+            position: "fixed",
+            top: "16px",
+            right: "16px",
+            backgroundColor: "var(--accent)",
+            color: "var(--background)",
+            padding: "8px 16px",
+            borderRadius: "6px",
+            fontSize: "12px",
+            fontWeight: "600",
+            zIndex: 1000,
+            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.15)",
+          }}
+        >
+          Frontend Demo Only
+        </div>
+      )}
       <WorkflowEditor
         onStartSession={handleStartSession}
         onStopSession={stopRecording}
