@@ -1,0 +1,9 @@
+# direnv
+.envrc
+.direnv/
+
+# nix
+.result
+result
+
+*/__pycache__/*
