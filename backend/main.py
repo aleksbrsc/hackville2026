@@ -39,6 +39,25 @@ class Stimulus(BaseModel):
     interval: float
 
 
+class TextSearchRequest(BaseModel):
+    text: str
+    search_string: str
+    mode: str
+    value: int
+    repeats: int
+    interval: float
+
+
+@app.post("/check-text")
+async def check_text(request: TextSearchRequest):
+    exists = request.search_string.lower() in request.text.lower()
+    
+    if exists:
+        stimulate(request.mode, request.value, request.repeats, request.interval)
+    
+    return {"exists": exists}
+
+
 @app.post("/trigger-stimulus")
 async def trigger_stimulus(stimulus: Stimulus):
     print(f"🔔 STIMULUS TRIGGERED: mode={stimulus.mode}, value={stimulus.value}, repeats={stimulus.repeats}, interval={stimulus.interval}")

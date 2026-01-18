@@ -19,8 +19,42 @@ export function useScribeRecorder(triggerConfig = []) {
     },
     onCommittedTranscript: async (data) => {
       console.log("Committed:", data.text);
-      const analysis = await analyseTranscript(data.text, configRef.current);
-      console.log("Analysis:", analysis);
+
+      const config = configRef.current;
+
+      // Handle keyword triggers via check-text endpoint
+      if (config.keywordTriggers && config.keywordTriggers.length > 0) {
+        for (const trigger of config.keywordTriggers) {
+          try {
+            const response = await fetch("http://localhost:8000/check-text", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                text: data.text,
+                search_string: trigger.keyword,
+                mode: trigger.action.mode,
+                value: trigger.action.value,
+                repeats: trigger.action.repeats,
+                interval: trigger.action.interval,
+              }),
+            });
+            const result = await response.json();
+            if (result.exists) {
+              console.log(`Keyword "${trigger.keyword}" detected - stimulus triggered`);
+            }
+          } catch (error) {
+            console.error("Error checking keyword:", error);
+          }
+        }
+      }
+
+      // Handle prompt triggers via Gemini
+      if (config.promptTriggers && config.promptTriggers.length > 0) {
+        const analysis = await analyseTranscript(data.text, config.promptTriggers);
+        console.log("Analysis:", analysis);
+      }
     },
   });
 
