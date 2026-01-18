@@ -1,9 +1,11 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
 const buildSystemPrompt = (triggerConfig) => {
-  const triggerList = triggerConfig.map(t => {
-    return `- ${t.prompt} -> mode: "${t.action.mode}", value: ${t.action.value}, repeats: ${t.action.repeats}, interval: ${t.action.interval}`;
-  }).join('\n');
+  const triggerList = triggerConfig
+    .map((t) => {
+      return `- ${t.prompt} -> mode: "${t.action.mode}", type: "${t.action.type}"`;
+    })
+    .join("\n");
 
   return `You are a system that will be helping Neurodivergent people have more natural conversations in social contexts. You will be fed transcripts of conversations that a neurodivergent user is having, and will have to help them in different ways. The way to help the user is by signalling different things to them that you can notice but may be hard for them to notice due to their neurodivergence. 
 
@@ -12,7 +14,7 @@ Different users have different things that they need help with, so they have def
 You have been provided with a function that you can call. Your main task is to analyze the transcript given to you, check if there are any triggers, and if there are, call the trigger stimulus function with the parameter values that were given to you.
 
 Below are the triggers for the current user:
-${triggerList || 'No triggers configured'}`;
+${triggerList || "No triggers configured"}`;
 };
 
 const triggerStimulusFunctionDeclaration = {
@@ -28,25 +30,18 @@ const triggerStimulusFunctionDeclaration = {
           'The type of stimulus: "vibe" for vibration or "beep" for sound',
         enum: ["vibe", "beep"],
       },
-      value: {
-        type: Type.NUMBER,
+      type: {
+        type: Type.STRING,
         description:
-          "The strength (for vibration) or loudness (for sound), range 0-100",
-      },
-      repeats: {
-        type: Type.NUMBER,
-        description: "How many times to emit the stimulus",
-      },
-      interval: {
-        type: Type.NUMBER,
-        description: "Seconds between repeats",
+          'The stimulus pattern: "single" for one pulse, "double" for two pulses, "triple" for three pulses, "long" for a sustained pulse, "heartbeat" for a heartbeat pattern, or "breathing" for a breathing exercise pattern',
+        enum: ["single", "double", "triple", "long", "heartbeat", "breathing"],
       },
     },
-    required: ["mode", "value", "repeats", "interval"],
+    required: ["mode", "type"],
   },
 };
 
-const triggerStimulusServer = async (mode, value, repeats, interval) => {
+const triggerStimulusServer = async (mode, type) => {
   await fetch("http://localhost:8000/trigger-stimulus", {
     method: "POST",
     headers: {
@@ -54,9 +49,7 @@ const triggerStimulusServer = async (mode, value, repeats, interval) => {
     },
     body: JSON.stringify({
       mode,
-      value,
-      repeats,
-      interval,
+      type,
     }),
   });
 };
@@ -85,8 +78,8 @@ export async function analyseTranscript(text, triggerConfig = []) {
         console.log(
           `Triggering stimulus: ${JSON.stringify(functionCall.args)}`,
         );
-        const { mode, value, repeats, interval } = functionCall.args;
-        await triggerStimulusServer(mode, value, repeats, interval);
+        const { mode, type } = functionCall.args;
+        await triggerStimulusServer(mode, type);
       }
     }
     return `Triggered ${response.functionCalls.length} stimulus(es)`;

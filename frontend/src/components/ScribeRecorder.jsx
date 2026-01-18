@@ -35,14 +35,14 @@ export function useScribeRecorder(triggerConfig = []) {
                 text: data.text,
                 search_string: trigger.keyword,
                 mode: trigger.action.mode,
-                value: trigger.action.value,
-                repeats: trigger.action.repeats,
-                interval: trigger.action.interval,
+                type: trigger.action.type,
               }),
             });
             const result = await response.json();
             if (result.exists) {
-              console.log(`Keyword "${trigger.keyword}" detected - stimulus triggered`);
+              console.log(
+                `Keyword "${trigger.keyword}" detected - stimulus triggered`,
+              );
             }
           } catch (error) {
             console.error("Error checking keyword:", error);
@@ -52,7 +52,10 @@ export function useScribeRecorder(triggerConfig = []) {
 
       // Handle prompt triggers via Gemini
       if (config.promptTriggers && config.promptTriggers.length > 0) {
-        const analysis = await analyseTranscript(data.text, config.promptTriggers);
+        const analysis = await analyseTranscript(
+          data.text,
+          config.promptTriggers,
+        );
         console.log("Analysis:", analysis);
       }
     },

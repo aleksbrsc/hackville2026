@@ -34,18 +34,21 @@ export default function WorkflowEditor({
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
   // Prevent deletion of start trigger node
-  const onNodesChange = useCallback((changes) => {
-    const filteredChanges = changes.filter(change => {
-      if (change.type === 'remove') {
-        const nodeToRemove = nodes.find(n => n.id === change.id);
-        if (nodeToRemove?.data?.isStart) {
-          return false; // Prevent deletion of start trigger
+  const onNodesChange = useCallback(
+    (changes) => {
+      const filteredChanges = changes.filter((change) => {
+        if (change.type === "remove") {
+          const nodeToRemove = nodes.find((n) => n.id === change.id);
+          if (nodeToRemove?.data?.isStart) {
+            return false; // Prevent deletion of start trigger
+          }
         }
-      }
-      return true;
-    });
-    onNodesChangeInternal(filteredChanges);
-  }, [nodes, onNodesChangeInternal]);
+        return true;
+      });
+      onNodesChangeInternal(filteredChanges);
+    },
+    [nodes, onNodesChangeInternal],
+  );
   const [isExecuting, setIsExecuting] = useState(false);
   const [activeNodeIds, setActiveNodeIds] = useState([]);
   const [activeEdgeIds, setActiveEdgeIds] = useState([]);
@@ -61,27 +64,37 @@ export default function WorkflowEditor({
   }, [nodes, edges]);
 
   // Evaluate conditional expression
-  const evaluateCondition = useCallback((parameter, operator, compareValue, triggerData) => {
-    const actualValue = triggerData[parameter];
-    const compareNum = parseFloat(compareValue);
-    const actualNum = parseFloat(actualValue);
+  const evaluateCondition = useCallback(
+    (parameter, operator, compareValue, triggerData) => {
+      const actualValue = triggerData[parameter];
+      const compareNum = parseFloat(compareValue);
+      const actualNum = parseFloat(actualValue);
 
-    switch (operator) {
-      case '>': return actualNum > compareNum;
-      case '<': return actualNum < compareNum;
-      case '>=': return actualNum >= compareNum;
-      case '<=': return actualNum <= compareNum;
-      case '===': return actualValue === compareValue;
-      case '!==': return actualValue !== compareValue;
-      default: return false;
-    }
-  }, []);
+      switch (operator) {
+        case ">":
+          return actualNum > compareNum;
+        case "<":
+          return actualNum < compareNum;
+        case ">=":
+          return actualNum >= compareNum;
+        case "<=":
+          return actualNum <= compareNum;
+        case "===":
+          return actualValue === compareValue;
+        case "!==":
+          return actualValue !== compareValue;
+        default:
+          return false;
+      }
+    },
+    [],
+  );
 
   // Execute workflow starting from start trigger
   const executeWorkflow = useCallback(async () => {
-    const startNode = nodes.find(n => n.data.isStart);
+    const startNode = nodes.find((n) => n.data.isStart);
     if (!startNode) {
-      console.error('No start trigger found');
+      console.error("No start trigger found");
       return;
     }
 
@@ -93,76 +106,83 @@ export default function WorkflowEditor({
     // Get trigger data from start node
     const triggerData = {
       seconds: startNode.data.seconds || 0,
-      triggerType: startNode.data.triggerType
+      triggerType: startNode.data.triggerType,
     };
 
     // Recursive function to execute nodes
     const executeNode = async (nodeId, currentTriggerData) => {
       if (executionAbortRef.current) return;
 
-      const node = nodesRef.current.find(n => n.id === nodeId);
+      const node = nodesRef.current.find((n) => n.id === nodeId);
       if (!node) return;
 
       // Highlight active node
       setActiveNodeIds([nodeId]);
-      await new Promise(resolve => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
-      if (node.type === 'action') {
+      if (node.type === "action") {
         // Execute action via backend API
         try {
-          const response = await fetch('/api/execute', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              actionType: node.data.actionType,
-              value: node.data.value
-            })
-          });
+          const response = await fetch(
+            "http://localhost:8000/trigger-stimulus",
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                mode: node.data.actionType,
+                type: node.data.stimulusType || "single",
+              }),
+            },
+          );
           if (!response.ok) {
-            console.error('Action execution failed:', await response.text());
+            console.error("Action execution failed:", await response.text());
           }
         } catch (error) {
-          console.error('Action execution error:', error);
+          console.error("Action execution error:", error);
         }
 
-        await new Promise(resolve => setTimeout(resolve, 300));
-      } else if (node.type === 'conditional') {
+        await new Promise((resolve) => setTimeout(resolve, 300));
+      } else if (node.type === "conditional") {
         // Evaluate condition
         const result = evaluateCondition(
           node.data.parameter,
           node.data.operator,
           node.data.compareValue,
-          currentTriggerData
+          currentTriggerData,
         );
 
         // Find the correct branch edge
         const branchEdge = edgesRef.current.find(
-          e => e.source === nodeId && e.sourceHandle === (result ? 'true' : 'false')
+          (e) =>
+            e.source === nodeId &&
+            e.sourceHandle === (result ? "true" : "false"),
         );
 
         if (branchEdge) {
           // Highlight the taken branch
           setActiveEdgeIds([branchEdge.id]);
-          await new Promise(resolve => setTimeout(resolve, 300));
+          await new Promise((resolve) => setTimeout(resolve, 300));
           await executeNode(branchEdge.target, currentTriggerData);
         }
         return;
-      } else if (node.type === 'trigger' && !node.data.isStart) {
+      } else if (node.type === "trigger" && !node.data.isStart) {
         // Non-start trigger: update trigger data
         currentTriggerData = {
           seconds: node.data.seconds || 0,
-          triggerType: node.data.triggerType
+          triggerType: node.data.triggerType,
         };
-        await new Promise(resolve => setTimeout(resolve, 300));
+        await new Promise((resolve) => setTimeout(resolve, 300));
       }
 
       // Find outgoing edges (skip for conditionals as they're handled above)
-      if (node.type !== 'conditional') {
-        const outgoingEdges = edgesRef.current.filter(e => e.source === nodeId);
+      if (node.type !== "conditional") {
+        const outgoingEdges = edgesRef.current.filter(
+          (e) => e.source === nodeId,
+        );
         for (const edge of outgoingEdges) {
           if (executionAbortRef.current) break;
           setActiveEdgeIds([edge.id]);
-          await new Promise(resolve => setTimeout(resolve, 200));
+          await new Promise((resolve) => setTimeout(resolve, 200));
           await executeNode(edge.target, currentTriggerData);
         }
       }
@@ -384,7 +404,9 @@ export default function WorkflowEditor({
           ...(type === "trigger"
             ? { triggerType: "prompt", prompt: "", isStart: false }
             : {}),
-          ...(type === "action" ? { actionType: "vibe", value: 50, seconds: 15 } : {}),
+          ...(type === "action"
+            ? { actionType: "vibe", stimulusType: "single", seconds: 15 }
+            : {}),
           ...(type === "conditional"
             ? { parameter: "value", operator: ">", compareValue: "50" }
             : {}),
@@ -399,44 +421,50 @@ export default function WorkflowEditor({
   const buildTriggerConfig = useCallback(() => {
     const config = {
       keywordTriggers: [],
-      promptTriggers: []
+      promptTriggers: [],
     };
 
     // Find all trigger nodes
-    const triggerNodes = nodes.filter(n => n.type === 'trigger');
-    console.log('Found trigger nodes:', triggerNodes);
+    const triggerNodes = nodes.filter((n) => n.type === "trigger");
+    console.log("Found trigger nodes:", triggerNodes);
 
-    triggerNodes.forEach(triggerNode => {
+    triggerNodes.forEach((triggerNode) => {
       // Find connected action nodes
-      const outgoingEdges = edges.filter(e => e.source === triggerNode.id);
+      const outgoingEdges = edges.filter((e) => e.source === triggerNode.id);
 
-      outgoingEdges.forEach(edge => {
-        const actionNode = nodes.find(n => n.id === edge.target && n.type === 'action');
+      outgoingEdges.forEach((edge) => {
+        const actionNode = nodes.find(
+          (n) => n.id === edge.target && n.type === "action",
+        );
 
         if (actionNode) {
           const action = {
             mode: actionNode.data.actionType,
-            value: actionNode.data.value || 50,
-            repeats: 1,
-            interval: 0,
+            type: actionNode.data.stimulusType || "single",
           };
 
-          if (triggerNode.data.triggerType === 'keyword' && triggerNode.data.keyword) {
+          if (
+            triggerNode.data.triggerType === "keyword" &&
+            triggerNode.data.keyword
+          ) {
             config.keywordTriggers.push({
               keyword: triggerNode.data.keyword,
-              action
+              action,
             });
-          } else if (triggerNode.data.triggerType === 'prompt' && triggerNode.data.prompt) {
+          } else if (
+            triggerNode.data.triggerType === "prompt" &&
+            triggerNode.data.prompt
+          ) {
             config.promptTriggers.push({
               prompt: triggerNode.data.prompt,
-              action
+              action,
             });
           }
         }
       });
     });
 
-    console.log('Final triggers config:', config);
+    console.log("Final triggers config:", config);
     return config;
   }, [nodes, edges]);
 
@@ -481,7 +509,7 @@ export default function WorkflowEditor({
 
   const handleStartSession = useCallback(() => {
     const config = buildTriggerConfig();
-    console.log('Starting session with config:', config);
+    console.log("Starting session with config:", config);
     onStartSession(config);
   }, [buildTriggerConfig, onStartSession]);
 

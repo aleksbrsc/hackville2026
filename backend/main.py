@@ -7,7 +7,8 @@ from dotenv import load_dotenv
 
 import os
 
-from pavfunctions import stimulate 
+from pavfunctions import stimulate
+from presets import single, double, triple, long, heartbeat, breathing 
 
 load_dotenv()
 mongo_uri = os.getenv("MONGO_DB_URI")
@@ -28,18 +29,17 @@ elevenlabs = ElevenLabs(
 
 class Stimulus(BaseModel):
     mode: str
-    value: int
-    repeats: int
-    interval: float
+    type: str  # single, double, triple, long, heartbeat, breathing
+    value: int = None
+    repeats: int = None
+    interval: float = None
 
 
 class TextSearchRequest(BaseModel):
     text: str
     search_string: str
     mode: str
-    value: int
-    repeats: int
-    interval: float
+    type: str
 
 
 @app.post("/check-text")
@@ -47,14 +47,41 @@ async def check_text(request: TextSearchRequest):
     exists = request.search_string.lower() in request.text.lower()
     
     if exists:
-        stimulate(request.mode, request.value, request.repeats, request.interval)
+        # Map type to the appropriate preset function
+        type_handlers = {
+            "single": single,
+            "double": double,
+            "triple": triple,
+            "long": long,
+            "heartbeat": heartbeat,
+            "breathing": breathing
+        }
+        
+        handler = type_handlers.get(request.type)
+        if handler:
+            handler(request.mode)
     
     return {"exists": exists}
 
 
 @app.post("/trigger-stimulus")
 async def trigger_stimulus(stimulus: Stimulus):
-    stimulate(stimulus.mode, stimulus.value, stimulus.repeats, stimulus.interval)
+    # Map type to the appropriate preset function
+    type_handlers = {
+        "single": single,
+        "double": double,
+        "triple": triple,
+        "long": long,
+        "heartbeat": heartbeat,
+        "breathing": breathing
+    }
+    
+    handler = type_handlers.get(stimulus.type)
+    if handler:
+        handler(stimulus.mode)
+    else:
+        # Fallback to direct stimulate call if type is not recognized
+        stimulate(stimulus.mode, stimulus.value, stimulus.repeats, stimulus.interval)
 
     return "Ok"
 
