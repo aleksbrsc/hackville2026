@@ -1,7 +1,15 @@
 import { useScribe } from "@elevenlabs/react";
+import { useRef, useEffect } from "react";
 import { analyseTranscript } from "../lib/GeminiAnalysis";
 
-export function useScribeRecorder() {
+export function useScribeRecorder(triggerConfig = []) {
+  const configRef = useRef(triggerConfig);
+
+  // Keep ref in sync with prop
+  useEffect(() => {
+    configRef.current = triggerConfig;
+  }, [triggerConfig]);
+
   const scribe = useScribe({
     modelId: "scribe_v2_realtime",
     commitStrategy: "vad",
@@ -11,7 +19,7 @@ export function useScribeRecorder() {
     },
     onCommittedTranscript: async (data) => {
       console.log("Committed:", data.text);
-      const analysis = await analyseTranscript(data.text);
+      const analysis = await analyseTranscript(data.text, configRef.current);
       console.log("Analysis:", analysis);
     },
   });

@@ -1,14 +1,19 @@
 import { GoogleGenAI, Type } from "@google/genai";
 
-const SYSTEM_PROMPT = `You are a system that will be helping Neurodivergent people have more natural conversations in social contexts. You will be fed transcripts of conversations that a neurodivergent user is having, and will have to help them in different ways. The way to help the user is by signalling different things to them that you can notice but may be hard for them to notice due to their neurodivergence. 
+const buildSystemPrompt = (triggerConfig) => {
+  const triggerList = triggerConfig.map(t => {
+    return `- ${t.prompt} -> mode: "${t.action.mode}", value: ${t.action.value}, repeats: ${t.action.repeats}, interval: ${t.action.interval}`;
+  }).join('\n');
+
+  return `You are a system that will be helping Neurodivergent people have more natural conversations in social contexts. You will be fed transcripts of conversations that a neurodivergent user is having, and will have to help them in different ways. The way to help the user is by signalling different things to them that you can notice but may be hard for them to notice due to their neurodivergence. 
 
 Different users have different things that they need help with, so they have defined a list of "triggers" for you to notice, accompanied by the signals that you should give when each trigger happens. The signals happen through a wearable device that can either vibrate on the user's wrist or emit a sound. 
 
 You have been provided with a function that you can call. Your main task is to analyze the transcript given to you, check if there are any triggers, and if there are, call the trigger stimulus function with the parameter values that were given to you.
 
 Below are the triggers for the current user:
-- "Politics have been brought up" -> mode: "vibe", value: 100, repeats: 1, interval: 0
-- "Sexual topics have been brought up" -> mode: "beep", value: 50, repeats: 1, interval: 0`;
+${triggerList || 'No triggers configured'}`;
+};
 
 const triggerStimulusFunctionDeclaration = {
   name: "trigger_stimulus",
@@ -56,12 +61,14 @@ const triggerStimulusServer = async (mode, value, repeats, interval) => {
   });
 };
 
-export async function analyseTranscript(text) {
+export async function analyseTranscript(text, triggerConfig = []) {
+  const systemPrompt = buildSystemPrompt(triggerConfig);
+  console.log(systemPrompt);
   const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_GEMINI_API_KEY });
 
   const response = await ai.models.generateContent({
     model: "gemini-2.0-flash-exp",
-    contents: `${SYSTEM_PROMPT}\n\nTranscript: "${text}"`,
+    contents: `${systemPrompt}\n\nTranscript: "${text}"`,
     config: {
       tools: [
         {
