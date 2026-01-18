@@ -3,7 +3,7 @@ import WorkflowEditor from "./components/WorkflowEditor";
 import { useScribeRecorder } from "./components/ScribeRecorder";
 
 function App() {
-  const [triggerConfig, setTriggerConfig] = useState([]);
+  const [triggerConfig, setTriggerConfig] = useState({ keywordTriggers: [], promptTriggers: [] });
   const { isConnected, startRecording, stopRecording } = useScribeRecorder(triggerConfig);
 
   const handleStartSession = async (config) => {

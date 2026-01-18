@@ -397,40 +397,47 @@ export default function WorkflowEditor({
 
   // Build trigger configuration from workflow nodes
   const buildTriggerConfig = useCallback(() => {
-    const triggers = [];
+    const config = {
+      keywordTriggers: [],
+      promptTriggers: []
+    };
 
-    // Find all prompt-type trigger nodes
-    const triggerNodes = nodes.filter(n => n.type === 'trigger' && n.data.triggerType === 'prompt');
+    // Find all trigger nodes
+    const triggerNodes = nodes.filter(n => n.type === 'trigger');
     console.log('Found trigger nodes:', triggerNodes);
 
     triggerNodes.forEach(triggerNode => {
       // Find connected action nodes
       const outgoingEdges = edges.filter(e => e.source === triggerNode.id);
-      console.log('Outgoing edges for trigger:', outgoingEdges);
 
       outgoingEdges.forEach(edge => {
         const actionNode = nodes.find(n => n.id === edge.target && n.type === 'action');
-        console.log('Found action node:', actionNode);
-        console.log('Trigger prompt:', triggerNode.data.prompt);
 
-        if (actionNode && triggerNode.data.prompt) {
-          const trigger = {
-            prompt: triggerNode.data.prompt,
-            action: {
-              mode: actionNode.data.actionType,
-              value: actionNode.data.value || 50,
-              repeats: 1,
-              interval: 0,
-            }
+        if (actionNode) {
+          const action = {
+            mode: actionNode.data.actionType,
+            value: actionNode.data.value || 50,
+            repeats: 1,
+            interval: 0,
           };
 
-          triggers.push(trigger);
+          if (triggerNode.data.triggerType === 'keyword' && triggerNode.data.keyword) {
+            config.keywordTriggers.push({
+              keyword: triggerNode.data.keyword,
+              action
+            });
+          } else if (triggerNode.data.triggerType === 'prompt' && triggerNode.data.prompt) {
+            config.promptTriggers.push({
+              prompt: triggerNode.data.prompt,
+              action
+            });
+          }
         }
       });
     });
 
-    console.log('Final triggers config:', triggers);
-    return triggers;
+    console.log('Final triggers config:', config);
+    return config;
   }, [nodes, edges]);
 
   // Check if any action node is reachable from start trigger
