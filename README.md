@@ -1,86 +1,63 @@
-# Hackville 2026 - Real-time Speech-to-Text with Sentiment Analysis
+# Haptix
 
-## Setup Instructions
+A no-code programming platform for haptic accessibility devices.
 
-### Backend Setup
+## Purpose
 
-1. Navigate to the backend directory:
+Create custom voice-triggered workflows that deliver haptic feedback through wearable devices. Build automation chains with keyword/prompt triggers, conditional logic, and haptic actions.
+
+## Tech Stack
+
+**Frontend**
+- React + Vite
+- React Flow (workflow editor)
+- ElevenLabs Scribe v2 (real-time speech-to-text)
+
+**Backend**
+- FastAPI
+- MongoDB
+- Pavlok API (haptic device control)
+- Google Gemini (prompt-based trigger analysis)
+
+## Prerequisites
+
+- Node.js 18+
+- Python 3.11+
+- Pavlok wearable device (only supported haptic device for MVP due to online delivery times of other wearable haptic devices)
+- ElevenLabs API key
+- Google Gemini API key
+- MongoDB instance
+
+## Setup
+
+### Backend
 
 ```bash
 cd backend
-```
-
-2. Create a `.env` file with your ElevenLabs API key:
-
-```bash
 cp .env.example .env
-```
-
-3. Add your ElevenLabs API key to `.env`:
-
-```
-ELEVENLABS_API_KEY=your_actual_api_key_here
-```
-
-4. Install dependencies:
-
-```bash
+# Add your API keys to .env
 uv sync
-```
-
-5. Run the backend server:
-
-```bash
 uv run fastapi dev main.py
 ```
 
-The backend will run on `http://localhost:8000`
+Runs on `http://localhost:8000`
 
-### Frontend Setup
-
-1. Navigate to the frontend directory:
+### Frontend
 
 ```bash
 cd frontend
-```
-
-2. Install dependencies:
-
-```bash
 npm install
-```
-
-3. Run the development server:
-
-```bash
 npm run dev
 ```
 
-The frontend will run on `http://localhost:5173`
+Runs on `http://localhost:5173`
 
-## Application Flow
+## Environment Variables
 
-1. **User starts session**: Click "Start Recording" in the AudioTest component
-2. **Real-time transcription**: ElevenLabs Scribe v2 transcribes speech with diarization
-3. **Backend processing**: Transcripts are sent via WebSocket to the backend
-4. **Sentiment analysis**: Each committed transcript is analyzed by an LLM for sentiment
-5. **Real-time display**: Results are displayed in the UI with sentiment indicators
-
-## API Endpoints
-
-- `GET /` - Health check
-- `POST /api/get-token` - Get ElevenLabs API token
-- `WebSocket /ws/transcripts/{session_id}` - WebSocket endpoint for real-time transcript streaming
-- `GET /api/session/{session_id}` - Retrieve session transcripts
-
-## Features
-
-- Real-time speech-to-text transcription with speaker diarization
-- WebSocket-based streaming for low latency
-- Sentiment analysis integration (placeholder for LLM)
-- Session management with transcript history
-- Modern React UI with real-time updates
-
-## Next Steps
-
-To integrate a real LLM for sentiment analysis, update the `analyze_sentiment` function in `backend/main.py` to call your preferred LLM API (OpenAI, Anthropic, etc.).
+**Backend `.env`**
+```
+ELEVENLABS_API_KEY=your_key
+GEMINI_API_KEY=your_key
+MONGO_DB_URI=your_mongodb_uri
+PAVLOK_AUTH_TOKEN=your_pavlok_token
+```
