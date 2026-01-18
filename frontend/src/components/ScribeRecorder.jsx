@@ -1,10 +1,14 @@
 import { useScribe } from "@elevenlabs/react";
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
+import { analyseTranscript } from "../lib/GeminiAnalysis";
 
-export function useScribeRecorder() {
-  const sessionIdRef = useRef(null);
-  const setActiveNodesRef = useRef(null);
-  const setExecutedNodesRef = useRef(null);
+export function useScribeRecorder(triggerConfig = []) {
+  const configRef = useRef(triggerConfig);
+
+  // Keep ref in sync with prop
+  useEffect(() => {
+    configRef.current = triggerConfig;
+  }, [triggerConfig]);
 
   const scribe = useScribe({
     modelId: "scribe_v2_realtime",
@@ -14,36 +18,9 @@ export function useScribeRecorder() {
       // Partial transcripts - no logging to improve performance
     },
     onCommittedTranscript: async (data) => {
-      
-      // Send transcript to backend execution engine (skip empty transcripts)
-      if (sessionIdRef.current && data.text.trim()) {
-        try {
-          const response = await fetch('http://localhost:8000/api/session/transcript', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              session_id: sessionIdRef.current,
-              transcript: data.text
-            })
-          });
-          
-          const result = await response.json();
-          
-          // Update node states for visualization
-          if (setActiveNodesRef.current) {
-            setActiveNodesRef.current(result.active_nodes);
-          }
-          if (setExecutedNodesRef.current) {
-            setExecutedNodesRef.current(result.executed_nodes);
-            // Also update edges based on executed nodes
-            if (result.executed_edges) {
-              window.__executedEdges = result.executed_edges;
-            }
-          }
-        } catch (error) {
-          console.error('Failed to process transcript:', error);
-        }
-      }
+      console.log("Committed:", data.text);
+      const analysis = await analyseTranscript(data.text, configRef.current);
+      console.log("Analysis:", analysis);
     },
   });
 

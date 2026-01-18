@@ -311,8 +311,8 @@ export default function WorkflowEditor({
               }),
             );
           },
-          triggerType: "keyword",
-          keyword: "",
+          triggerType: "prompt",
+          prompt: "",
           isStart: true,
         },
       };
@@ -377,8 +377,8 @@ export default function WorkflowEditor({
       position: { x: 250, y: 150 },
       data: {
         onChange: onNodeDataChange,
-        triggerType: "keyword",
-        keyword: "",
+        triggerType: "prompt",
+        prompt: "",
         isStart: true,
       },
     };
@@ -421,7 +421,7 @@ export default function WorkflowEditor({
           getParentParameters:
             type === "conditional" ? () => getParentParameters(id) : undefined,
           ...(type === "trigger"
-            ? { triggerType: "keyword", keyword: "", isStart: false }
+            ? { triggerType: "prompt", prompt: "", isStart: false }
             : {}),
           ...(type === "action" ? { actionType: "vibe", value: 50, times: 1, interval: 0, seconds: 15 } : {}),
           ...(type === "conditional"
@@ -434,7 +434,49 @@ export default function WorkflowEditor({
     [setNodes, onNodeDataChange, nodes, getParentParameters, isSessionActive],
   );
 
+<<<<<<< HEAD
   // Check if workflow can be executed
+=======
+  // Build trigger configuration from workflow nodes
+  const buildTriggerConfig = useCallback(() => {
+    const triggers = [];
+
+    // Find all prompt-type trigger nodes
+    const triggerNodes = nodes.filter(n => n.type === 'trigger' && n.data.triggerType === 'prompt');
+    console.log('Found trigger nodes:', triggerNodes);
+
+    triggerNodes.forEach(triggerNode => {
+      // Find connected action nodes
+      const outgoingEdges = edges.filter(e => e.source === triggerNode.id);
+      console.log('Outgoing edges for trigger:', outgoingEdges);
+
+      outgoingEdges.forEach(edge => {
+        const actionNode = nodes.find(n => n.id === edge.target && n.type === 'action');
+        console.log('Found action node:', actionNode);
+        console.log('Trigger prompt:', triggerNode.data.prompt);
+
+        if (actionNode && triggerNode.data.prompt) {
+          const trigger = {
+            prompt: triggerNode.data.prompt,
+            action: {
+              mode: actionNode.data.actionType,
+              value: actionNode.data.value || 50,
+              repeats: 1,
+              interval: 0,
+            }
+          };
+
+          triggers.push(trigger);
+        }
+      });
+    });
+
+    console.log('Final triggers config:', triggers);
+    return triggers;
+  }, [nodes, edges]);
+
+  // Check if any action node is reachable from start trigger
+>>>>>>> ca03dc2 (feat(frontend): prompt type trigger done)
   const canExecute = useMemo(() => {
     const startNode = nodes.find((n) => n.data.isStart);
     if (!startNode) return false;
@@ -532,12 +574,22 @@ export default function WorkflowEditor({
     onStartSession(workflow);
   }, [nodes, edges, onStartSession]);
 
+  const handleStartSession = useCallback(() => {
+    const config = buildTriggerConfig();
+    console.log('Starting session with config:', config);
+    onStartSession(config);
+  }, [buildTriggerConfig, onStartSession]);
+
   return (
     <div className={styles.workflow_editor}>
       <Sidebar
         onAddNode={addNode}
         onReset={handleReset}
+<<<<<<< HEAD
         onStartSession={handleStartClick}
+=======
+        onStartSession={handleStartSession}
+>>>>>>> ca03dc2 (feat(frontend): prompt type trigger done)
         onStopSession={onStopSession}
         isSessionActive={isSessionActive}
         isStarting={isStarting}

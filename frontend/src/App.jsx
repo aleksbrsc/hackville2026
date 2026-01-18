@@ -3,6 +3,7 @@ import WorkflowEditor from "./components/WorkflowEditor";
 import { useScribeRecorder } from "./components/ScribeRecorder";
 
 function App() {
+<<<<<<< HEAD
   const { isConnected, startRecording, stopRecording, setSessionId: setScribeSessionId, setActiveNodesCallback, setExecutedNodesCallback } = useScribeRecorder();
   const [sessionId, setSessionId] = useState(null);
   const [activeNodes, setActiveNodes] = useState([]);
@@ -81,13 +82,27 @@ function App() {
     } catch (error) {
       console.error('Failed to stop session:', error);
     }
+=======
+  const [triggerConfig, setTriggerConfig] = useState([]);
+  const { isConnected, startRecording, stopRecording } = useScribeRecorder(triggerConfig);
+
+  const handleStartSession = async (config) => {
+    setTriggerConfig(config);
+    // Wait for next tick to ensure state is updated
+    await new Promise(resolve => setTimeout(resolve, 0));
+    await startRecording();
+>>>>>>> ca03dc2 (feat(frontend): prompt type trigger done)
   };
 
   return (
     <div style={{ height: '100%', display: 'flex' }}>
       <WorkflowEditor
         onStartSession={handleStartSession}
+<<<<<<< HEAD
         onStopSession={handleStopSession}
+=======
+        onStopSession={stopRecording}
+>>>>>>> ca03dc2 (feat(frontend): prompt type trigger done)
         isSessionActive={isConnected}
         isStarting={isStarting}
         sessionId={sessionId}
