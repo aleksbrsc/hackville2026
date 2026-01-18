@@ -29,36 +29,10 @@ export default function WorkflowEditor({
   onStartSession,
   onStopSession,
   isSessionActive,
-  isStarting,
-  sessionId,
-  activeNodes = [],
-  executedNodes = [],
-  setActiveNodes,
-  onResetVisualFeedback,
 }) {
   const [nodes, setNodes, onNodesChangeInternal] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 
-<<<<<<< HEAD
-  // Prevent deletion of start trigger node and disable all changes during session
-  const onNodesChange = useCallback((changes) => {
-    // Block all changes if session is active
-    if (isSessionActive) {
-      return;
-    }
-    
-    const filteredChanges = changes.filter(change => {
-      if (change.type === 'remove') {
-        const nodeToRemove = nodes.find(n => n.id === change.id);
-        if (nodeToRemove?.data?.isStart) {
-          return false; // Prevent deletion of start trigger
-        }
-      }
-      return true;
-    });
-    onNodesChangeInternal(filteredChanges);
-  }, [nodes, onNodesChangeInternal, isSessionActive]);
-=======
   // Prevent deletion of start trigger node
   const onNodesChange = useCallback(
     (changes) => {
@@ -75,7 +49,6 @@ export default function WorkflowEditor({
     },
     [nodes, onNodesChangeInternal],
   );
->>>>>>> 5839dc8 (feat(frontend): types instead of numerical intensity)
   const [isExecuting, setIsExecuting] = useState(false);
   const [activeNodeIds, setActiveNodeIds] = useState([]);
   const [activeEdgeIds, setActiveEdgeIds] = useState([]);
@@ -274,11 +247,6 @@ export default function WorkflowEditor({
 
   const onConnect = useCallback(
     (params) => {
-      // Block connections if session is active
-      if (isSessionActive) {
-        return;
-      }
-      
       // Check if source is a conditional node and add label
       const sourceNode = nodes.find((n) => n.id === params.source);
       const edgeLabel =
@@ -314,7 +282,7 @@ export default function WorkflowEditor({
         );
       }
     },
-    [setEdges, nodes, setNodes, getParentParameters, isSessionActive],
+    [setEdges, nodes, setNodes, getParentParameters],
   );
 
   // Initialize with a start trigger node
@@ -328,10 +296,6 @@ export default function WorkflowEditor({
         position: { x: 250, y: 150 },
         data: {
           onChange: (nodeId, field, value) => {
-            // Block changes if session is active
-            if (isSessionActive) {
-              return;
-            }
             setNodes((nds) =>
               nds.map((node) => {
                 if (node.id === nodeId) {
@@ -375,10 +339,6 @@ export default function WorkflowEditor({
 
   const onNodeDataChange = useCallback(
     (nodeId, field, value) => {
-      // Block changes if session is active
-      if (isSessionActive) {
-        return;
-      }
       setNodes((nds) =>
         nds.map((node) => {
           if (node.id === nodeId) {
@@ -394,14 +354,10 @@ export default function WorkflowEditor({
         }),
       );
     },
-    [setNodes, isSessionActive],
+    [setNodes],
   );
 
   const handleReset = useCallback(() => {
-    // Block reset if session is active
-    if (isSessionActive) {
-      return;
-    }
     // Reset node ID counter
     nodeId = 0;
     // Create fresh start node
@@ -421,20 +377,10 @@ export default function WorkflowEditor({
     // Reset to initial state with just the start node
     setNodes([startNode]);
     setEdges([]);
-    
-    // Clear visual feedback
-    if (onResetVisualFeedback) {
-      onResetVisualFeedback();
-    }
-  }, [setNodes, setEdges, onNodeDataChange, onResetVisualFeedback, isSessionActive]);
+  }, [setNodes, setEdges, onNodeDataChange]);
 
   const addNode = useCallback(
     (type) => {
-      // Block adding nodes if session is active
-      if (isSessionActive) {
-        return;
-      }
-      
       const id = getNodeId();
 
       // Find the rightmost node position
@@ -453,19 +399,14 @@ export default function WorkflowEditor({
         },
         data: {
           onChange: onNodeDataChange,
-          isSessionActive,
           getParentParameters:
             type === "conditional" ? () => getParentParameters(id) : undefined,
           ...(type === "trigger"
             ? { triggerType: "prompt", prompt: "", isStart: false }
             : {}),
-<<<<<<< HEAD
-          ...(type === "action" ? { actionType: "vibe", value: 50, times: 1, interval: 0, seconds: 15 } : {}),
-=======
           ...(type === "action"
             ? { actionType: "vibe", stimulusType: "single", seconds: 15 }
             : {}),
->>>>>>> 5839dc8 (feat(frontend): types instead of numerical intensity)
           ...(type === "conditional"
             ? { parameter: "value", operator: ">", compareValue: "50" }
             : {}),
@@ -473,12 +414,9 @@ export default function WorkflowEditor({
       };
       setNodes((nds) => [...nds, newNode]);
     },
-    [setNodes, onNodeDataChange, nodes, getParentParameters, isSessionActive],
+    [setNodes, onNodeDataChange, nodes, getParentParameters],
   );
 
-<<<<<<< HEAD
-  // Check if workflow can be executed
-=======
   // Build trigger configuration from workflow nodes
   const buildTriggerConfig = useCallback(() => {
     const config = {
@@ -531,25 +469,9 @@ export default function WorkflowEditor({
   }, [nodes, edges]);
 
   // Check if any action node is reachable from start trigger
->>>>>>> ca03dc2 (feat(frontend): prompt type trigger done)
   const canExecute = useMemo(() => {
     const startNode = nodes.find((n) => n.data.isStart);
     if (!startNode) return false;
-
-    // Check all trigger nodes have non-empty inputs
-    const triggerNodes = nodes.filter((n) => n.type === "trigger");
-    for (const trigger of triggerNodes) {
-      const triggerType = trigger.data.triggerType;
-      if (triggerType === "keyword") {
-        if (!trigger.data.keyword || trigger.data.keyword.trim() === "") {
-          return false; // Empty keyword
-        }
-      } else if (triggerType === "prompt") {
-        if (!trigger.data.prompt || trigger.data.prompt.trim() === "") {
-          return false; // Empty prompt
-        }
-      }
-    }
 
     // Traverse graph to find if any action node is reachable
     const visited = new Set();
@@ -573,61 +495,17 @@ export default function WorkflowEditor({
     return false; // No action node found
   }, [nodes, edges]);
 
-  // Apply active (yellow) and executed (green) classes to nodes
-  const nodesWithActiveClass = useMemo(() => {
-    return nodes.map((node) => {
-      const isActive = activeNodes.includes(node.id);
-      const isExecuted = executedNodes.includes(node.id);
-      
-      let className = "";
-      if (isExecuted) {
-        className = "executed";
-      } else if (isActive) {
-        className = "active";
-      }
-      
-      return {
-        ...node,
-        className,
-        data: {
-          ...node.data,
-          isSessionActive,
-        },
-        style: {
-          ...node.style,
-        },
-      };
-    });
-  }, [nodes, activeNodes, executedNodes, isSessionActive]);
+  // Apply active class to nodes
+  const nodesWithActiveClass = nodes.map((node) => ({
+    ...node,
+    className: activeNodeIds.includes(node.id) ? "active" : "",
+  }));
 
-  // Apply executed class to edges
-  const edgesWithActiveClass = useMemo(() => {
-    const execEdges = window.__executedEdges || [];
-    return edges.map((edge) => ({
-      ...edge,
-      className: execEdges.includes(edge.id) ? "executed" : "",
-    }));
-  }, [edges, executedNodes]);
-
-  const handleStartClick = useCallback(() => {
-    // Serialize workflow and pass to parent
-    const workflow = {
-      nodes: nodes.map(node => ({
-        id: node.id,
-        type: node.type,
-        data: node.data,
-        position: node.position
-      })),
-      edges: edges.map(edge => ({
-        id: edge.id,
-        source: edge.source,
-        target: edge.target,
-        sourceHandle: edge.sourceHandle,
-        targetHandle: edge.targetHandle
-      }))
-    };
-    onStartSession(workflow);
-  }, [nodes, edges, onStartSession]);
+  // Apply active class to edges
+  const edgesWithActiveClass = edges.map((edge) => ({
+    ...edge,
+    className: activeEdgeIds.includes(edge.id) ? "active" : "",
+  }));
 
   const handleStartSession = useCallback(() => {
     const config = buildTriggerConfig();
@@ -640,14 +518,9 @@ export default function WorkflowEditor({
       <Sidebar
         onAddNode={addNode}
         onReset={handleReset}
-<<<<<<< HEAD
-        onStartSession={handleStartClick}
-=======
         onStartSession={handleStartSession}
->>>>>>> ca03dc2 (feat(frontend): prompt type trigger done)
         onStopSession={onStopSession}
         isSessionActive={isSessionActive}
-        isStarting={isStarting}
         onExecute={executeWorkflow}
         onStop={stopExecution}
         isExecuting={isExecuting}
