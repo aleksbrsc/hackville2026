@@ -8,4 +8,5 @@ dependencies = [
     "fastapi[standard]>=0.128.0",
     "elevenlabs>=1.0.0",
     "python-dotenv>=1.0.0",
+    "pymongo>=4.16.0",
 ]
