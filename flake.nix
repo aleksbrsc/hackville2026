@@ -16,6 +16,8 @@
         packages = [
           python
           python.pkgs.requests
+
+          pkgs.uv
         ];
       };
     };
