@@ -5,6 +5,9 @@ on:
     branches:
       - '**'  # Triggers on all branches
 
+permissions:
+  contents: write
+
 jobs:
   create-dummy-commit:
     runs-on: ubuntu-latest
