@@ -1,10 +1,28 @@
-import styles from '../styles/sidebar.module.css';
+import styles from "../styles/sidebar.module.css";
 
-export default function Sidebar({ onAddNode, onReset }) {
+export default function Sidebar({
+  onAddNode,
+  onReset,
+  onStartSession,
+  onStopSession,
+  isSessionActive,
+}) {
   const nodeTypes = [
-    { type: 'trigger', label: 'Trigger', icon: '/src/assets/images/icons/flag.svg' },
-    { type: 'action', label: 'Action', icon: '/src/assets/images/icons/lightning.svg' },
-    { type: 'conditional', label: 'If / Else', icon: '/src/assets/images/icons/branch.svg' }
+    {
+      type: "trigger",
+      label: "Trigger",
+      icon: "/src/assets/images/icons/flag.svg",
+    },
+    {
+      type: "action",
+      label: "Action",
+      icon: "/src/assets/images/icons/lightning.svg",
+    },
+    {
+      type: "conditional",
+      label: "If / Else",
+      icon: "/src/assets/images/icons/branch.svg",
+    },
   ];
 
   return (
@@ -13,6 +31,24 @@ export default function Sidebar({ onAddNode, onReset }) {
         <h1 className={styles.app_title}>haptix</h1>
         <img src="/logo-white.svg" alt="logo" className={styles.app_logo} />
       </div>
+      <button
+        className={styles.sidebar_item}
+        onClick={isSessionActive ? onStopSession : onStartSession}
+      >
+        <span className={styles.sidebar_icon}>
+          <img
+            src={
+              isSessionActive
+                ? "/src/assets/images/icons/stop.svg"
+                : "/src/assets/images/icons/play.svg"
+            }
+            alt={isSessionActive ? "stop session" : "start session"}
+          />
+        </span>
+        <span className={styles.sidebar_label}>
+          {isSessionActive ? "Stop" : "Start Session"}
+        </span>
+      </button>
       <h3>automation</h3>
       <div className={styles.sidebar_items}>
         <button className={styles.sidebar_item}>
@@ -27,7 +63,9 @@ export default function Sidebar({ onAddNode, onReset }) {
           </span>
           <span className={styles.sidebar_label}>Reset</span>
         </button>
-        <button className={`${styles.sidebar_item} ${styles.sidebar_item_disabled}`}>
+        <button
+          className={`${styles.sidebar_item} ${styles.sidebar_item_disabled}`}
+        >
           <span className={styles.sidebar_icon}>
             <img src="/src/assets/images/icons/share.svg" alt="share" />
           </span>
@@ -36,7 +74,7 @@ export default function Sidebar({ onAddNode, onReset }) {
       </div>
       <h3>nodes</h3>
       <div className={styles.sidebar_items}>
-        {nodeTypes.map(node => (
+        {nodeTypes.map((node) => (
           <button
             key={node.type}
             className={styles.sidebar_item}

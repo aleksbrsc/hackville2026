@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ReactFlow,
   Background,
@@ -7,14 +7,14 @@ import {
   addEdge,
   useNodesState,
   useEdgesState,
-} from '@xyflow/react';
-import '@xyflow/react/dist/style.css';
+} from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
 
-import TriggerNode from './nodes/TriggerNode';
-import ActionNode from './nodes/ActionNode';
-import ConditionalNode from './nodes/ConditionalNode';
-import Sidebar from './Sidebar';
-import styles from '../styles/workflow_editor.module.css';
+import TriggerNode from "./nodes/TriggerNode";
+import ActionNode from "./nodes/ActionNode";
+import ConditionalNode from "./nodes/ConditionalNode";
+import Sidebar from "./Sidebar";
+import styles from "../styles/workflow_editor.module.css";
 
 const nodeTypes = {
   trigger: TriggerNode,
@@ -25,7 +25,11 @@ const nodeTypes = {
 let nodeId = 0;
 const getNodeId = () => `node_${nodeId++}`;
 
-export default function WorkflowEditor() {
+export default function WorkflowEditor({
+  onStartSession,
+  onStopSession,
+  isSessionActive,
+}) {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [executionState, setExecutionState] = useState({});
@@ -44,63 +48,67 @@ export default function WorkflowEditor() {
   const getAncestorTrigger = useCallback((nodeId) => {
     const currentEdges = edgesRef.current;
     const currentNodes = nodesRef.current;
-    
+
     let currentNodeId = nodeId;
     const visited = new Set();
-    
+
     while (currentNodeId && !visited.has(currentNodeId)) {
       visited.add(currentNodeId);
-      
-      const incomingEdge = currentEdges.find(e => e.target === currentNodeId);
+
+      const incomingEdge = currentEdges.find((e) => e.target === currentNodeId);
       if (!incomingEdge) return null;
-      
-      const parentNode = currentNodes.find(n => n.id === incomingEdge.source);
+
+      const parentNode = currentNodes.find((n) => n.id === incomingEdge.source);
       if (!parentNode) return null;
-      
-      if (parentNode.type === 'trigger') {
+
+      if (parentNode.type === "trigger") {
         return parentNode;
       }
-      
+
       currentNodeId = parentNode.id;
     }
-    
+
     return null;
   }, []);
 
   // Helper function to get available parameters from ancestor trigger node
-  const getParentParameters = useCallback((nodeId) => {
-    const trigger = getAncestorTrigger(nodeId);
-    if (!trigger) return [];
+  const getParentParameters = useCallback(
+    (nodeId) => {
+      const trigger = getAncestorTrigger(nodeId);
+      if (!trigger) return [];
 
-    const params = [];
-    // Only triggers have dynamic parameters worth evaluating
-    params.push({ id: 'seconds', label: 'Seconds' });
-    return params;
-  }, [getAncestorTrigger]);
+      const params = [];
+      // Only triggers have dynamic parameters worth evaluating
+      params.push({ id: "seconds", label: "Seconds" });
+      return params;
+    },
+    [getAncestorTrigger],
+  );
 
   const onConnect = useCallback(
     (params) => {
       // Check if source is a conditional node and add label
-      const sourceNode = nodes.find(n => n.id === params.source);
-      const edgeLabel = sourceNode?.type === 'conditional' && params.sourceHandle 
-        ? params.sourceHandle 
-        : '';
-      
+      const sourceNode = nodes.find((n) => n.id === params.source);
+      const edgeLabel =
+        sourceNode?.type === "conditional" && params.sourceHandle
+          ? params.sourceHandle
+          : "";
+
       const newEdge = {
         ...params,
         label: edgeLabel,
-        labelStyle: { fill: 'var(--light)', fontWeight: 500 },
-        labelBgStyle: { fill: 'var(--foreground)' },
+        labelStyle: { fill: "var(--light)", fontWeight: 500 },
+        labelBgStyle: { fill: "var(--foreground)" },
       };
-      
+
       setEdges((eds) => addEdge(newEdge, eds));
-      
+
       // Update conditional nodes with new parent parameters
-      const targetNode = nodes.find(n => n.id === params.target);
-      if (targetNode?.type === 'conditional') {
-        setNodes((nds) => 
+      const targetNode = nodes.find((n) => n.id === params.target);
+      if (targetNode?.type === "conditional") {
+        setNodes((nds) =>
           nds.map((node) => {
-            if (node.id === params.target && node.type === 'conditional') {
+            if (node.id === params.target && node.type === "conditional") {
               return {
                 ...node,
                 data: {
@@ -110,11 +118,11 @@ export default function WorkflowEditor() {
               };
             }
             return node;
-          })
+          }),
         );
       }
     },
-    [setEdges, nodes, setNodes, getParentParameters]
+    [setEdges, nodes, setNodes, getParentParameters],
   );
 
   // Initialize with a start trigger node
@@ -124,7 +132,7 @@ export default function WorkflowEditor() {
       startNodeId.current = id;
       const startNode = {
         id,
-        type: 'trigger',
+        type: "trigger",
         position: { x: 0, y: 0 },
         data: {
           onChange: (nodeId, field, value) => {
@@ -140,10 +148,10 @@ export default function WorkflowEditor() {
                   };
                 }
                 return node;
-              })
+              }),
             );
           },
-          triggerType: 'timer',
+          triggerType: "timer",
           seconds: 5,
           isStart: true,
         },
@@ -153,35 +161,41 @@ export default function WorkflowEditor() {
   }, []);
 
   // Custom nodes change handler to prevent deletion of start trigger
-  const handleNodesChange = useCallback((changes) => {
-    // Filter out any attempts to delete the start trigger
-    const filteredChanges = changes.filter(c => {
-      if (c.type === 'remove') {
-        const node = nodes.find(n => n.id === c.id);
-        // Prevent deletion if it's the start trigger
-        return !(node && node.data?.isStart);
-      }
-      return true;
-    });
-    onNodesChange(filteredChanges);
-  }, [nodes, onNodesChange]);
-
-  const onNodeDataChange = useCallback((nodeId, field, value) => {
-    setNodes((nds) =>
-      nds.map((node) => {
-        if (node.id === nodeId) {
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              [field]: value,
-            },
-          };
+  const handleNodesChange = useCallback(
+    (changes) => {
+      // Filter out any attempts to delete the start trigger
+      const filteredChanges = changes.filter((c) => {
+        if (c.type === "remove") {
+          const node = nodes.find((n) => n.id === c.id);
+          // Prevent deletion if it's the start trigger
+          return !(node && node.data?.isStart);
         }
-        return node;
-      })
-    );
-  }, [setNodes]);
+        return true;
+      });
+      onNodesChange(filteredChanges);
+    },
+    [nodes, onNodesChange],
+  );
+
+  const onNodeDataChange = useCallback(
+    (nodeId, field, value) => {
+      setNodes((nds) =>
+        nds.map((node) => {
+          if (node.id === nodeId) {
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                [field]: value,
+              },
+            };
+          }
+          return node;
+        }),
+      );
+    },
+    [setNodes],
+  );
 
   const handleReset = useCallback(() => {
     // Reset node ID counter
@@ -191,11 +205,11 @@ export default function WorkflowEditor() {
     startNodeId.current = id;
     const startNode = {
       id,
-      type: 'trigger',
+      type: "trigger",
       position: { x: 0, y: 0 },
       data: {
         onChange: onNodeDataChange,
-        triggerType: 'timer',
+        triggerType: "timer",
         seconds: 5,
         isStart: true,
       },
@@ -205,36 +219,51 @@ export default function WorkflowEditor() {
     setEdges([]);
   }, [setNodes, setEdges, onNodeDataChange]);
 
-  const addNode = useCallback((type) => {
-    const id = getNodeId();
-    
-    // Find the rightmost node position
-    const rightmostX = nodes.length > 0 
-      ? Math.max(...nodes.map(node => node.position.x))
-      : 0;
-    
-    // Position new node to the right of the rightmost node with spacing
-    const newNode = {
-      id,
-      type,
-      position: {
-        x: rightmostX + 300,
-        y: Math.random() * 100,
-      },
-      data: {
-        onChange: onNodeDataChange,
-        getParentParameters: type === 'conditional' ? () => getParentParameters(id) : undefined,
-        ...(type === 'trigger' ? { triggerType: 'timer', seconds: 5, isStart: false } : {}),
-        ...(type === 'action' ? { actionType: 'vibe', value: 50 } : {}),
-        ...(type === 'conditional' ? { parameter: 'value', operator: '>', compareValue: '50' } : {}),
-      },
-    };
-    setNodes((nds) => [...nds, newNode]);
-  }, [setNodes, onNodeDataChange, nodes, getParentParameters]);
+  const addNode = useCallback(
+    (type) => {
+      const id = getNodeId();
+
+      // Find the rightmost node position
+      const rightmostX =
+        nodes.length > 0
+          ? Math.max(...nodes.map((node) => node.position.x))
+          : 0;
+
+      // Position new node to the right of the rightmost node with spacing
+      const newNode = {
+        id,
+        type,
+        position: {
+          x: rightmostX + 300,
+          y: Math.random() * 100,
+        },
+        data: {
+          onChange: onNodeDataChange,
+          getParentParameters:
+            type === "conditional" ? () => getParentParameters(id) : undefined,
+          ...(type === "trigger"
+            ? { triggerType: "timer", seconds: 5, isStart: false }
+            : {}),
+          ...(type === "action" ? { actionType: "vibe", value: 50 } : {}),
+          ...(type === "conditional"
+            ? { parameter: "value", operator: ">", compareValue: "50" }
+            : {}),
+        },
+      };
+      setNodes((nds) => [...nds, newNode]);
+    },
+    [setNodes, onNodeDataChange, nodes, getParentParameters],
+  );
 
   return (
     <div className={styles.workflow_editor}>
-      <Sidebar onAddNode={addNode} onReset={handleReset} />
+      <Sidebar
+        onAddNode={addNode}
+        onReset={handleReset}
+        onStartSession={onStartSession}
+        onStopSession={onStopSession}
+        isSessionActive={isSessionActive}
+      />
       <div className={styles.flow_container}>
         <ReactFlow
           nodes={nodes}
