@@ -15,7 +15,7 @@
       devShells.${system}.default = pkgs.mkShell {
         packages = [
           python
-          python.pkgs.pexpect
+          python.pkgs.requests
         ];
       };
     };
