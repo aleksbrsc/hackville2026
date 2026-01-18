@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useMemo } from "react";
 import {
   ReactFlow,
   Background,
@@ -30,19 +30,159 @@ export default function WorkflowEditor({
   onStopSession,
   isSessionActive,
 }) {
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
+  const [nodes, setNodes, onNodesChangeInternal] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [executionState, setExecutionState] = useState({});
+
+  // Prevent deletion of start trigger node
+  const onNodesChange = useCallback((changes) => {
+    const filteredChanges = changes.filter(change => {
+      if (change.type === 'remove') {
+        const nodeToRemove = nodes.find(n => n.id === change.id);
+        if (nodeToRemove?.data?.isStart) {
+          return false; // Prevent deletion of start trigger
+        }
+      }
+      return true;
+    });
+    onNodesChangeInternal(filteredChanges);
+  }, [nodes, onNodesChangeInternal]);
+  const [isExecuting, setIsExecuting] = useState(false);
   const [activeNodeIds, setActiveNodeIds] = useState([]);
+  const [activeEdgeIds, setActiveEdgeIds] = useState([]);
   const startNodeId = useRef(null);
   const nodesRef = useRef(nodes);
   const edgesRef = useRef(edges);
+  const executionAbortRef = useRef(false);
 
   // Keep refs in sync with state
   useEffect(() => {
     nodesRef.current = nodes;
     edgesRef.current = edges;
   }, [nodes, edges]);
+
+  // Evaluate conditional expression
+  const evaluateCondition = useCallback((parameter, operator, compareValue, triggerData) => {
+    const actualValue = triggerData[parameter];
+    const compareNum = parseFloat(compareValue);
+    const actualNum = parseFloat(actualValue);
+
+    switch (operator) {
+      case '>': return actualNum > compareNum;
+      case '<': return actualNum < compareNum;
+      case '>=': return actualNum >= compareNum;
+      case '<=': return actualNum <= compareNum;
+      case '===': return actualValue === compareValue;
+      case '!==': return actualValue !== compareValue;
+      default: return false;
+    }
+  }, []);
+
+  // Execute workflow starting from start trigger
+  const executeWorkflow = useCallback(async () => {
+    const startNode = nodes.find(n => n.data.isStart);
+    if (!startNode) {
+      console.error('No start trigger found');
+      return;
+    }
+
+    setIsExecuting(true);
+    executionAbortRef.current = false;
+    setActiveNodeIds([]);
+    setActiveEdgeIds([]);
+
+    // Get trigger data from start node
+    const triggerData = {
+      seconds: startNode.data.seconds || 0,
+      triggerType: startNode.data.triggerType
+    };
+
+    // Recursive function to execute nodes
+    const executeNode = async (nodeId, currentTriggerData) => {
+      if (executionAbortRef.current) return;
+
+      const node = nodesRef.current.find(n => n.id === nodeId);
+      if (!node) return;
+
+      // Highlight active node
+      setActiveNodeIds([nodeId]);
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      if (node.type === 'action') {
+        // Execute action via backend API
+        try {
+          const response = await fetch('/api/execute', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              actionType: node.data.actionType,
+              value: node.data.value
+            })
+          });
+          if (!response.ok) {
+            console.error('Action execution failed:', await response.text());
+          }
+        } catch (error) {
+          console.error('Action execution error:', error);
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 300));
+      } else if (node.type === 'conditional') {
+        // Evaluate condition
+        const result = evaluateCondition(
+          node.data.parameter,
+          node.data.operator,
+          node.data.compareValue,
+          currentTriggerData
+        );
+
+        // Find the correct branch edge
+        const branchEdge = edgesRef.current.find(
+          e => e.source === nodeId && e.sourceHandle === (result ? 'true' : 'false')
+        );
+
+        if (branchEdge) {
+          // Highlight the taken branch
+          setActiveEdgeIds([branchEdge.id]);
+          await new Promise(resolve => setTimeout(resolve, 300));
+          await executeNode(branchEdge.target, currentTriggerData);
+        }
+        return;
+      } else if (node.type === 'trigger' && !node.data.isStart) {
+        // Non-start trigger: update trigger data
+        currentTriggerData = {
+          seconds: node.data.seconds || 0,
+          triggerType: node.data.triggerType
+        };
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+
+      // Find outgoing edges (skip for conditionals as they're handled above)
+      if (node.type !== 'conditional') {
+        const outgoingEdges = edgesRef.current.filter(e => e.source === nodeId);
+        for (const edge of outgoingEdges) {
+          if (executionAbortRef.current) break;
+          setActiveEdgeIds([edge.id]);
+          await new Promise(resolve => setTimeout(resolve, 200));
+          await executeNode(edge.target, currentTriggerData);
+        }
+      }
+    };
+
+    await executeNode(startNode.id, triggerData);
+
+    // Clear highlights
+    setActiveNodeIds([]);
+    setActiveEdgeIds([]);
+    setIsExecuting(false);
+  }, [nodes, edges, evaluateCondition]);
+
+  // Stop execution
+  const stopExecution = useCallback(() => {
+    executionAbortRef.current = true;
+    setActiveNodeIds([]);
+    setActiveEdgeIds([]);
+    setIsExecuting(false);
+  }, []);
 
   // Helper function to find closest ancestor trigger node
   const getAncestorTrigger = useCallback((nodeId) => {
@@ -133,7 +273,7 @@ export default function WorkflowEditor({
       const startNode = {
         id,
         type: "trigger",
-        position: { x: 0, y: 0 },
+        position: { x: 250, y: 150 },
         data: {
           onChange: (nodeId, field, value) => {
             setNodes((nds) =>
@@ -151,8 +291,8 @@ export default function WorkflowEditor({
               }),
             );
           },
-          triggerType: "timer",
-          seconds: 5,
+          triggerType: "keyword",
+          keyword: "",
           isStart: true,
         },
       };
@@ -206,11 +346,11 @@ export default function WorkflowEditor({
     const startNode = {
       id,
       type: "trigger",
-      position: { x: 0, y: 0 },
+      position: { x: 250, y: 150 },
       data: {
         onChange: onNodeDataChange,
-        triggerType: "timer",
-        seconds: 5,
+        triggerType: "keyword",
+        keyword: "",
         isStart: true,
       },
     };
@@ -242,9 +382,9 @@ export default function WorkflowEditor({
           getParentParameters:
             type === "conditional" ? () => getParentParameters(id) : undefined,
           ...(type === "trigger"
-            ? { triggerType: "timer", seconds: 5, isStart: false }
+            ? { triggerType: "keyword", keyword: "", isStart: false }
             : {}),
-          ...(type === "action" ? { actionType: "vibe", value: 50 } : {}),
+          ...(type === "action" ? { actionType: "vibe", value: 50, seconds: 15 } : {}),
           ...(type === "conditional"
             ? { parameter: "value", operator: ">", compareValue: "50" }
             : {}),
@@ -255,6 +395,45 @@ export default function WorkflowEditor({
     [setNodes, onNodeDataChange, nodes, getParentParameters],
   );
 
+  // Check if any action node is reachable from start trigger
+  const canExecute = useMemo(() => {
+    const startNode = nodes.find((n) => n.data.isStart);
+    if (!startNode) return false;
+
+    // Traverse graph to find if any action node is reachable
+    const visited = new Set();
+    const queue = [startNode.id];
+
+    while (queue.length > 0) {
+      const currentId = queue.shift();
+      if (visited.has(currentId)) continue;
+      visited.add(currentId);
+
+      const currentNode = nodes.find((n) => n.id === currentId);
+      if (currentNode?.type === "action") {
+        return true; // Found an action node
+      }
+
+      // Add connected nodes to queue
+      const outgoingEdges = edges.filter((e) => e.source === currentId);
+      outgoingEdges.forEach((edge) => queue.push(edge.target));
+    }
+
+    return false; // No action node found
+  }, [nodes, edges]);
+
+  // Apply active class to nodes
+  const nodesWithActiveClass = nodes.map((node) => ({
+    ...node,
+    className: activeNodeIds.includes(node.id) ? "active" : "",
+  }));
+
+  // Apply active class to edges
+  const edgesWithActiveClass = edges.map((edge) => ({
+    ...edge,
+    className: activeEdgeIds.includes(edge.id) ? "active" : "",
+  }));
+
   return (
     <div className={styles.workflow_editor}>
       <Sidebar
@@ -263,19 +442,25 @@ export default function WorkflowEditor({
         onStartSession={onStartSession}
         onStopSession={onStopSession}
         isSessionActive={isSessionActive}
+        onExecute={executeWorkflow}
+        onStop={stopExecution}
+        isExecuting={isExecuting}
+        canExecute={canExecute}
       />
       <div className={styles.flow_container}>
         <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={handleNodesChange}
+          nodes={nodesWithActiveClass}
+          edges={edgesWithActiveClass}
+          onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           nodeTypes={nodeTypes}
-          defaultViewport={{ x: 250, y: 250, zoom: 0.8 }}
+          defaultViewport={{ x: 250, y: 150, zoom: 1 }}
+          minZoom={0.5}
+          maxZoom={2}
           proOptions={{ hideAttribution: true }}
         >
-          <Background />
+          <Background color="var(--canvas_dots)" gap={16} />
           <Controls />
           <MiniMap />
         </ReactFlow>

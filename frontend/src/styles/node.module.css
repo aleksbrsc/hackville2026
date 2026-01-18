@@ -8,6 +8,7 @@
 
 .trigger_node {
   border-color: var(--border_color);
+  min-width: 280px;
 }
 
 .start_node {
@@ -15,8 +16,18 @@
 }
 
 .node.active {
-  border-color: var(--green);
-  box-shadow: 0 0 0 2px var(--green);
+  border-color: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.3);
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(34, 197, 94, 0.2);
+  }
 }
 
 .action_node {
@@ -80,7 +91,8 @@
 
 .node_field select,
 .node_field input[type="number"],
-.node_field input[type="text"] {
+.node_field input[type="text"],
+.node_field textarea {
   padding: 0.5rem;
   background-color: var(--dark_bg);
   border: 1px solid var(--dark_30);
@@ -90,9 +102,20 @@
   font-family: 'Hanken Grotesk', sans-serif;
 }
 
+.node_field textarea {
+  resize: vertical;
+  min-height: 3rem;
+  line-height: 1.4;
+}
+
+.node_field textarea:active {
+  cursor: ns-resize;
+}
+
 .node_field select:focus,
 .node_field input[type="number"]:focus,
-.node_field input[type="text"]:focus {
+.node_field input[type="text"]:focus,
+.node_field textarea:focus {
   outline: none;
   border-color: var(--light_50);
 }

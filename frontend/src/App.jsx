@@ -5,7 +5,7 @@ function App() {
   const { isConnected, startRecording, stopRecording } = useScribeRecorder();
 
   return (
-    <div>
+    <div style={{ height: '100%', display: 'flex' }}>
       <WorkflowEditor
         onStartSession={startRecording}
         onStopSession={stopRecording}

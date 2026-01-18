@@ -4,7 +4,7 @@ import styles from '../../styles/node.module.css';
 const actionTypes = [
   { 
     id: 'vibe', 
-    label: 'Vibe', 
+    label: 'Vibrate', 
     params: ['value'] 
   },
   { 
@@ -16,6 +16,11 @@ const actionTypes = [
     id: 'beep', 
     label: 'Beep', 
     params: ['value'] 
+  },
+  { 
+    id: 'wait', 
+    label: 'Wait', 
+    params: ['seconds'] 
   }
 ];
 
@@ -52,6 +57,17 @@ export default function ActionNode({ data, id }) {
               max="100" 
               value={data.value || 50}
               onChange={(e) => data.onChange?.(id, 'value', parseInt(e.target.value))}
+            />
+          </div>
+        )}
+        {selectedType.params.includes('seconds') && (
+          <div className={styles.node_field}>
+            <label>Seconds</label>
+            <input 
+              type="number" 
+              min="1" 
+              value={data.seconds || 15}
+              onChange={(e) => data.onChange?.(id, 'seconds', parseInt(e.target.value))}
             />
           </div>
         )}

@@ -6,6 +6,10 @@ export default function Sidebar({
   onStartSession,
   onStopSession,
   isSessionActive,
+  onExecute,
+  onStop,
+  isExecuting,
+  canExecute,
 }) {
   const nodeTypes = [
     {
@@ -31,31 +35,25 @@ export default function Sidebar({
         <h1 className={styles.app_title}>haptix</h1>
         <img src="/logo-white.svg" alt="logo" className={styles.app_logo} />
       </div>
-      <button
-        className={styles.sidebar_item}
-        onClick={isSessionActive ? onStopSession : onStartSession}
-      >
-        <span className={styles.sidebar_icon}>
-          <img
-            src={
-              isSessionActive
-                ? "/src/assets/images/icons/stop.svg"
-                : "/src/assets/images/icons/play.svg"
-            }
-            alt={isSessionActive ? "stop session" : "start session"}
-          />
-        </span>
-        <span className={styles.sidebar_label}>
-          {isSessionActive ? "Stop" : "Start Session"}
-        </span>
-      </button>
       <h3>automation</h3>
       <div className={styles.sidebar_items}>
-        <button className={styles.sidebar_item}>
+        <button
+          className={styles.sidebar_item}
+          onClick={isSessionActive ? onStopSession : onStartSession}
+        >
           <span className={styles.sidebar_icon}>
-            <img src="/src/assets/images/icons/play.svg" alt="start" />
+            <img
+              src={
+                isSessionActive
+                  ? "/src/assets/images/icons/stop.svg"
+                  : "/src/assets/images/icons/start.svg"
+              }
+              alt={isSessionActive ? "stop session" : "start session"}
+            />
           </span>
-          <span className={styles.sidebar_label}>Start</span>
+          <span className={styles.sidebar_label}>
+            {isSessionActive ? "Stop" : "Start"}
+          </span>
         </button>
         <button className={styles.sidebar_item} onClick={onReset}>
           <span className={styles.sidebar_icon}>
