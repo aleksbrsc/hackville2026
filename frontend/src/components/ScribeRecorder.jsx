@@ -13,7 +13,7 @@ export function useScribeRecorder(triggerConfig = []) {
   const scribe = useScribe({
     modelId: "scribe_v2_realtime",
     commitStrategy: "vad",
-    vadSilenceThresholdSecs: 1,
+    vadSilenceThresholdSecs: 0.31,
     onPartialTranscript: (data) => {
       // Partial transcripts - no logging to improve performance
     },
